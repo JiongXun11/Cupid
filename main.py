@@ -126,6 +126,9 @@ shop_items = {
     8: {"name": "Obby", "cost": 1000},
     9: {"name": "Scratch Ticket", "cost": 1500},
     10: {"name": "Potion?", "cost": 300},
+    11: {"name": "Forehead kiss", "cost": 50},
+    12: {"name": "???", "cost": 200},
+    13: {"name": "Really cool looking sword (discounted)", "cost": 150}
 }
 
 @bot.message_handler(commands=['shop'])
@@ -190,4 +193,4 @@ def echo_all(message):
 
 
 print("Bot is running...")
-bot.polling()
+bot.polling(non_stop=True, timeout=60, long_polling_timeout=10)
