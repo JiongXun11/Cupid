@@ -3,6 +3,13 @@ from flask import Flask
 from threading import Thread
 from flask import Flask    
 from threading import Thread
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+
+API_KEY = os.getenv("API_KEY")
+API_ID = os.getenv("API_ID")
 
 app = Flask('')
 
@@ -20,7 +27,7 @@ def keep_alive():
 keep_alive()
 
 # Replace 'YOUR_BOT_TOKEN' with your actual bot token from BotFather
-TOKEN = "7622026705:AAGFt_JbVRNE_jAc2MU1IGQQlmQhOeEV5Tw"
+TOKEN = API_KEY
 bot = telebot.TeleBot(TOKEN)
 
 # Dictionary to store count per user
@@ -66,13 +73,17 @@ def sock(message):
 def summon(message):
     bot.reply_to(message, "You saved me!! YAYYYY heheh I knew you would be able to find me :D.")
 
+@bot.message_handler(commands=['potion'])
+def summon(message):
+    bot.reply_to(message, "Received 1x free drink of your choice! Claim it from your love now :D")
+
 @bot.message_handler(commands=['useticket'])
 def ticket(message):
     bot.reply_to(message, "With trembling hands, you scratched off the numbers on the ticket to find... THAT YOU WON 100 DOLLARS!! Time to claim it and go out for a meal <3")    
 
 @bot.message_handler(commands=['userincrement'])
 def increment_number(message):
-    user_id = 843308507     #replace with lil jx number
+    user_id = API_ID     #replace with lil jx number
     try:
         parts = message.text.split()
         if len(parts) > 1:
@@ -113,14 +124,11 @@ def quest(message):
 # Shop items
 shop_items = {
     1: {"name": "Back Scratch Ticket (15 minutes)", "cost": 200},
-    2: {"name": "Mystery Gift", "cost": 200},
     3: {"name": "Bolster Privilege", "cost": 250},
-    4: {"name": "Obby's Clue", "cost": 300},
-    5: {"name": "Jack and Jill's Savings", "cost": 100},
-    6: {"name": "Obby's Leftover Sock", "cost": 50},
     7: {"name": "A car", "cost": 400},
     8: {"name": "Obby", "cost": 1000},
-    9: {"name": "Scratch Ticket", "cost": 1500}
+    9: {"name": "Scratch Ticket", "cost": 1500},
+    10: {"name": "Potion?", "cost": 300},
 }
 
 @bot.message_handler(commands=['shop'])
@@ -169,6 +177,8 @@ def buy_item(message):
         bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}\nYou can check the contents using /summonobby.")
     elif item_id == 9:
         bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}\nYou can check the contents using /useticket.")
+    elif item_id == 10:
+        bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}\nYou can check the contents using /potion.")    
     else:
         bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}")
     
