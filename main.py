@@ -111,7 +111,7 @@ def increment_number(message):
 
 @bot.message_handler(commands=['shards'])
 def get_count(message):
-    user_id = message.from_user.id
+    user_id = API_ID
     count = user_data.get(user_id, 0)
     bot.reply_to(message, f"Your current number of shards: {count} & {user_id}")
 
@@ -154,7 +154,7 @@ def show_shop(message):
 
 @bot.message_handler(func=lambda message: message.text.lower().startswith('buy '))
 def buy_item(message):
-    user_id = message.from_user.id
+    user_id = API_ID
     parts = message.text.split()
     if len(parts) < 2 or not parts[1].isdigit():
         bot.reply_to(message, "Invalid command. Use 'buy <item number>'.")
