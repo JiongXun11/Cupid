@@ -5,8 +5,6 @@ from flask import Flask
 from threading import Thread
 import os
 
-load_dotenv()
-
 API_KEY = os.getenv("API_KEY")
 API_ID = os.getenv("API_ID")
 
