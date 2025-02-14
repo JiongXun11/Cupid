@@ -74,6 +74,18 @@ def summon(message):
 def summon(message):
     bot.reply_to(message, "Received 1x free drink of your choice! Claim it from your love now :D")
 
+@bot.message_handler(commands=['kiss'])
+def summon(message):
+    bot.reply_to(message, "Received forehead kiss ticket! Claim it from your love now :D")
+
+@bot.message_handler(commands=['unknown'])
+def summon(message):
+    bot.reply_to(message, "!!&%@!&*^&*@^*%!!@#^%&^!*!&@^#)(!@&*#^!@$#&%!(*)!@#^!%@&#%*!@#")
+
+@bot.message_handler(commands=['sword'])
+def summon(message):
+    bot.reply_to(message, "You patiently wait for the shopkeeper to reach for the cool sword from his storage... still waiting... anddd you got scammed there's no sword. But you gained experience points in wisdom! I guess that's something at least.")
+
 @bot.message_handler(commands=['useticket'])
 def ticket(message):
     bot.reply_to(message, "With trembling hands, you scratched off the numbers on the ticket to find... THAT YOU WON 100 DOLLARS!! Time to claim it and go out for a meal <3")    
@@ -179,6 +191,12 @@ def buy_item(message):
         bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}\nYou can check the contents using /useticket.")
     elif item_id == 10:
         bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}\nYou can check the contents using /potion.")    
+    elif item_id == 11:
+        bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}\nYou can check the contents using /kiss.")    
+    elif item_id == 12:
+        bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}\nYou can check the contents using /unknown.")    
+    elif item_id == 13:
+        bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}\nYou can check the contents using /sword.")    
     else:
         bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}")
     
