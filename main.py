@@ -113,7 +113,7 @@ def increment_number(message):
 def get_count(message):
     user_id = API_ID
     count = user_data.get(user_id, 0)
-    bot.reply_to(message, f"Your current number of shards: {count} & {user_id}")
+    bot.reply_to(message, f"Your current number of shards: {count}")
 
 quests = {
     1: {"name": "Escaper", "description": "Follow your love on an adventure and successfully complete the activity. Take pictures for proof of completion. Reward: 500 love shards"},
