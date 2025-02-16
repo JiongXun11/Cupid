@@ -143,6 +143,139 @@ shop_items = {
     13: {"name": "Really cool looking sword (discounted)", "cost": 150}
 }
 
+# Add a quest
+@bot.message_handler(commands=['add_quest'])
+def add_quest(message):
+    parts = message.text.split(' ', 1)  # Expecting: /add_quest <quest_name> <description>
+    
+    if len(parts) < 2:
+        bot.reply_to(message, "Usage: /add_quest <quest_name> <quest_description>")
+        return
+    
+    quest_name, quest_description = parts[1].split(' ', 1)
+    
+    if quest_name in quests:
+        bot.reply_to(message, f"⚠ A quest named '{quest_name}' already exists.")
+        return
+    
+    quests[quest_name] = quest_description
+    bot.reply_to(message, f"Quest '{quest_name}' added!\n📖 **Description:** {quest_description}")
+
+# Remove a quest
+@bot.message_handler(commands=['remove_quest'])
+def remove_quest(message):
+    parts = message.text.split(' ', 1)
+    
+    if len(parts) < 2:
+        bot.reply_to(message, "Usage: /remove_quest <quest_name>")
+        return
+    
+    quest_name = parts[1].strip()
+    
+    if quest_name in quests:
+        del quests[quest_name]
+        bot.reply_to(message, f"Quest '{quest_name}' has been removed.")
+    else:
+        bot.reply_to(message, f"⚠ No quest found with the name '{quest_name}'.")
+
+# Add an item to the shop
+@bot.message_handler(commands=['add_item'])
+def add_item(message):
+    parts = message.text.split(' ', 2)  # Expecting: /add_item <item_name> <cost>
+    
+    if len(parts) < 3 or not parts[2].isdigit():
+        bot.reply_to(message, "Usage: /add_item <item_name> <cost>")
+        return
+    
+    item_name = parts[1].strip()
+    item_cost = int(parts[2])
+    
+    if item_name in shop_items:
+        bot.reply_to(message, f"⚠ An item named '{item_name}' already exists.")
+        return
+    
+    shop_items[item_name] = item_cost
+    bot.reply_to(message, f"Item '{item_name}' added to the shop!\n**Cost:** {item_cost} shards")
+
+# Remove an item from the shop
+@bot.message_handler(commands=['remove_item'])
+def remove_item(message):
+    parts = message.text.split(' ', 1)
+    
+    if len(parts) < 2:
+        bot.reply_to(message, "Usage: /remove_item <item_name>")
+        return
+    
+    item_name = parts[1].strip()
+    
+    if item_name in shop_items:
+        del shop_items[item_name]
+        bot.reply_to(message, f"Item '{item_name}' has been removed from the shop.")
+    else:
+        bot.reply_to(message, f"⚠ No item found with the name '{item_name}'.")
+
+# Notify that the bot is down for maintenance
+@bot.message_handler(commands=['down'])
+def bot_down(message):
+    bot.send_message(API_ID, "The bot is currently down for maintenance. Please check back later.")
+    bot.reply_to(message, "The bot is currently down for maintenance. Please check back later.")
+
+# Notify that the bot is live again
+@bot.message_handler(commands=['up'])
+def bot_up(message):
+    bot.send_message(API_ID, "The bot is now live and fully operational!")
+    bot.reply_to(message, "The bot is now live and fully operational!")
+
+@bot.message_handler(commands=['addlist'])
+def add_list(message):
+    bot.reply_to(message, "Enter the task description:")
+    bot.register_next_step_handler(message, process_add_list)
+
+def process_add_list(message):
+    task_description = message.text.strip()
+    task_id = len(todo_list) + 1
+    bot.reply_to(message, "Enter the due date and time (YYYY-MM-DD HH:MM) in Singapore time:")
+    bot.register_next_step_handler(message, lambda msg: process_due_date(msg, task_id, task_description))
+
+def process_due_date(message, task_id, task_description):
+    try:
+        due_date = datetime.strptime(message.text.strip(), "%Y-%m-%d %H:%M").replace(tzinfo=tz)
+        bot.reply_to(message, "Enter the reminder date and time (YYYY-MM-DD HH:MM) in Singapore time:")
+        bot.register_next_step_handler(message, lambda msg: process_reminder(msg, task_id, task_description, due_date))
+    except ValueError:
+        bot.reply_to(message, "Invalid format. Please use YYYY-MM-DD HH:MM")
+
+def process_reminder(message, task_id, task_description, due_date):
+    try:
+        reminder_date = datetime.strptime(message.text.strip(), "%Y-%m-%d %H:%M").replace(tzinfo=tz)
+        todo_list[task_id] = {"task": task_description, "due_date": due_date, "reminder_date": reminder_date}
+        bot.reply_to(message, f"Task '{task_description}' added successfully with ID {task_id}!")
+    except ValueError:
+        bot.reply_to(message, "Invalid format. Please use YYYY-MM-DD HH:MM")
+
+@bot.message_handler(commands=['complete'])
+def complete_task(message):
+    bot.reply_to(message, "Enter the task ID to mark as completed:")
+    bot.register_next_step_handler(message, process_complete_task)
+
+def process_complete_task(message):
+    try:
+        task_id = int(message.text.strip())
+        if task_id in todo_list:
+            bot.reply_to(message, f"Are you sure you want to mark task {task_id} as completed? Reply 'yes' to confirm.")
+            bot.register_next_step_handler(message, lambda msg: confirm_complete(msg, task_id))
+        else:
+            bot.reply_to(message, "Task ID not found.")
+    except ValueError:
+        bot.reply_to(message, "Invalid task ID.")
+
+def confirm_complete(message, task_id):
+    if message.text.lower() == 'yes':
+        del todo_list[task_id]
+        bot.reply_to(message, f"Task {task_id} marked as completed!")
+    else:
+        bot.reply_to(message, "Task completion cancelled.")
+
 @bot.message_handler(commands=['shop'])
 def show_shop(message):
     shop_text = "Welcome to the shop! Here are the items available:\n"
