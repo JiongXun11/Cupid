@@ -6,6 +6,7 @@ from threading import Thread
 import os
 from datetime import datetime, timedelta
 import pytz
+import time
 
 API_KEY = os.getenv("API_KEY")
 API_ID = os.getenv("API_ID")
@@ -34,6 +35,18 @@ user_data = {}
 todo_list = {}
 tz = pytz.timezone('Asia/Singapore')
 
+def check_reminders():
+    while True:
+        now = datetime.now(tz)
+        for task_id, task in list(todo_list.items()):
+            if task['reminder_date'] <= now:
+                bot.send_message(task['user_id'], f"Reminder: Task '{task['task']}' is due on {task['due_date'].strftime('%Y-%m-%d %H:%M')}")
+                del todo_list[task_id]
+        time.sleep(60)  # Check every minute
+
+reminder_thread = Thread(target=check_reminders, daemon=True)
+reminder_thread.start()
+
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
     bot.reply_to(message, "Oh noes!! Looks like the evil cupid was jealous of your love for crystal, so he has decided to steal Obby away from you!! Fret not, for I am the cupid bot, designed to help you find Obby, and bring him back to you! Your task for these 2 days will be to collect love shards. These love shards will allow you to buy items from my almighty love shop, but be aware to spend wisely as it is not easy to earn shards! If you need any additonal help, just search /help for all my functions. Good luck, and may the cupid be with you!")
@@ -47,6 +60,9 @@ def help(message):
         "/quest - Quests to be completed for love shards.\n"
         "/shards - Check your current love shards count.\n"
         "/shop - View available shop items.\n"
+        "/todo - View your todo list.\n"
+        "/addlist - Add an item to your list.\n"
+        "/complete - Mark an item in todo list as completed.\n"
     )
     bot.reply_to(message, help_text)
 
@@ -238,13 +254,13 @@ def add_list(message):
 def process_add_list(message):
     task_description = message.text.strip()
     task_id = len(todo_list) + 1
-    bot.reply_to(message, "Enter the due date and time (YYYY-MM-DD HH:MM) in Singapore time:")
+    bot.reply_to(message, "Input due date and time (YYYY-MM-DD HH:MM) in Singapore time:")
     bot.register_next_step_handler(message, lambda msg: process_due_date(msg, task_id, task_description))
 
 def process_due_date(message, task_id, task_description):
     try:
         due_date = datetime.strptime(message.text.strip(), "%Y-%m-%d %H:%M").replace(tzinfo=tz)
-        bot.reply_to(message, "Enter the reminder date and time (YYYY-MM-DD HH:MM) in Singapore time:")
+        bot.reply_to(message, "Input reminder date and time (YYYY-MM-DD HH:MM) in Singapore time:")
         bot.register_next_step_handler(message, lambda msg: process_reminder(msg, task_id, task_description, due_date))
     except ValueError:
         bot.reply_to(message, "Invalid format. Please use YYYY-MM-DD HH:MM")
@@ -257,6 +273,16 @@ def process_reminder(message, task_id, task_description, due_date):
     except ValueError:
         bot.reply_to(message, "Invalid format. Please use YYYY-MM-DD HH:MM")
 
+@bot.message_handler(commands=['todo'])
+def view_todo(message):
+    if not todo_list:
+        bot.reply_to(message, "Your to-do list is empty.")
+    else:
+        response = "Your current tasks:\n"
+        for task_id, task in todo_list.items():
+            response += f"ID: {task_id} | Task: {task['task']} | Due: {task['due_date'].strftime('%Y-%m-%d %H:%M')} | Reminder: {task['reminder_date'].strftime('%Y-%m-%d %H:%M')}\n"
+        bot.reply_to(message, response)
+
 @bot.message_handler(commands=['complete'])
 def complete_task(message):
     bot.reply_to(message, "Enter the task ID to mark as completed:")
@@ -266,7 +292,7 @@ def process_complete_task(message):
     try:
         task_id = int(message.text.strip())
         if task_id in todo_list:
-            bot.reply_to(message, f"Are you sure you want to mark task {task_id} as completed? Reply 'yes' to confirm.")
+            bot.reply_to(message, f"Are you sure you want to mark task {task_id} as completed? Reply 'Yes' to confirm.")
             bot.register_next_step_handler(message, lambda msg: confirm_complete(msg, task_id))
         else:
             bot.reply_to(message, "Task ID not found.")
@@ -274,7 +300,7 @@ def process_complete_task(message):
         bot.reply_to(message, "Invalid task ID.")
 
 def confirm_complete(message, task_id):
-    if message.text.lower() == 'yes':
+    if message.text.lower() == 'Yes':
         del todo_list[task_id]
         bot.reply_to(message, f"Task {task_id} marked as completed!")
     else:
@@ -285,16 +311,16 @@ def show_shop(message):
     shop_text = "Welcome to the shop! Here are the items available:\n"
     for item_id, item in shop_items.items():
         shop_text += f"{item_id}: {item['name']} - {item['cost']} shards\n"
-    shop_text += "\nTo buy an item, type 'buy <item number>'."
+    shop_text += "\nTo buy an item, type 'Buy <item number>'."
     shop_text += "\nTo exit the shop, type 'exit'."
     bot.reply_to(message, shop_text)
 
-@bot.message_handler(func=lambda message: message.text.lower().startswith('buy '))
+@bot.message_handler(func=lambda message: message.text.lower().startswith('Buy '))
 def buy_item(message):
     user_id = API_ID
     parts = message.text.split()
     if len(parts) < 2 or not parts[1].isdigit():
-        bot.reply_to(message, "Invalid command. Use 'buy <item number>'.")
+        bot.reply_to(message, "Invalid command. Use 'Buy <item number>'.")
         return
 
     item_id = int(parts[1])
@@ -338,7 +364,7 @@ def buy_item(message):
         bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}")
     
 
-@bot.message_handler(func=lambda message: message.text.lower() == 'exit')
+@bot.message_handler(func=lambda message: message.text.lower() == 'Exit')
 def exit_shop(message):
     bot.reply_to(message, "You have exited the shop.")
 
