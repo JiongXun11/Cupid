@@ -33,19 +33,22 @@ bot = telebot.TeleBot(TOKEN)
 # Dictionary to store count per user
 user_data = {}
 todo_list = {}
+reminded_tasks = set()  # Track tasks that have been reminded
 tz = pytz.timezone('Asia/Singapore')
 
 def check_reminders():
     while True:
         now = datetime.now(tz)
         for task_id, task in list(todo_list.items()):
-            if task['reminder_date'] <= now:
-                bot.send_message(task['user_id'], f"Reminder: Task '{task['task']}' is due on {task['due_date'].strftime('%Y-%m-%d %H:%M')}")
-                del todo_list[task_id]
-        time.sleep(60)  # Check every minute
+            reminder_time = task['reminder_date'].astimezone(tz)
+            due_time = task['due_date'].astimezone(tz)
 
-reminder_thread = Thread(target=check_reminders, daemon=True)
-reminder_thread.start()
+            # Send reminder only once and don't delete task
+            if reminder_time <= now < due_time and task_id not in reminded_tasks:
+                bot.send_message(task['user_id'], f"Reminder: Task '{task['task']}' is due on {due_time.strftime('%Y-%m-%d %H:%M')}")
+                reminded_tasks.add(task_id)  # Mark task as reminded
+        
+        time.sleep(60)  # Check every minute
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
@@ -179,7 +182,7 @@ def add_quest(message):
         return
     
     quests[quest_name] = quest_description
-    bot.reply_to(message, f"Quest '{quest_name}' added!\n📖 **Description:** {quest_description}")
+    bot.reply_to(message, f"Quest '{quest_name}' added!\n **Description:** {quest_description}")
 
 # Remove a quest
 @bot.message_handler(commands=['remove_quest'])
@@ -196,7 +199,7 @@ def remove_quest(message):
         del quests[quest_name]
         bot.reply_to(message, f"Quest '{quest_name}' has been removed.")
     else:
-        bot.reply_to(message, f"⚠ No quest found with the name '{quest_name}'.")
+        bot.reply_to(message, f"No quest found with the name '{quest_name}'.")
 
 # Add an item to the shop
 @bot.message_handler(commands=['add_item'])
@@ -211,7 +214,7 @@ def add_item(message):
     item_cost = int(parts[2])
     
     if item_name in shop_items:
-        bot.reply_to(message, f"⚠ An item named '{item_name}' already exists.")
+        bot.reply_to(message, f"An item named '{item_name}' already exists.")
         return
     
     shop_items[item_name] = item_cost
@@ -292,7 +295,7 @@ def process_complete_task(message):
     try:
         task_id = int(message.text.strip())
         if task_id in todo_list:
-            bot.reply_to(message, f"Are you sure you want to mark task {task_id} as completed? Reply 'Yes' to confirm.")
+            bot.reply_to(message, f"Are you sure you want to mark task {task_id} as completed? Reply 'yes' to confirm.")
             bot.register_next_step_handler(message, lambda msg: confirm_complete(msg, task_id))
         else:
             bot.reply_to(message, "Task ID not found.")
@@ -300,7 +303,7 @@ def process_complete_task(message):
         bot.reply_to(message, "Invalid task ID.")
 
 def confirm_complete(message, task_id):
-    if message.text.lower() == 'Yes':
+    if message.text.lower() == 'yes':
         del todo_list[task_id]
         bot.reply_to(message, f"Task {task_id} marked as completed!")
     else:
@@ -315,12 +318,12 @@ def show_shop(message):
     shop_text += "\nTo exit the shop, type 'exit'."
     bot.reply_to(message, shop_text)
 
-@bot.message_handler(func=lambda message: message.text.lower().startswith('Buy '))
+@bot.message_handler(func=lambda message: message.text.lower().startswith('buy '))
 def buy_item(message):
     user_id = API_ID
     parts = message.text.split()
     if len(parts) < 2 or not parts[1].isdigit():
-        bot.reply_to(message, "Invalid command. Use 'Buy <item number>'.")
+        bot.reply_to(message, "Invalid command. Use 'buy <item number>'.")
         return
 
     item_id = int(parts[1])
@@ -364,7 +367,7 @@ def buy_item(message):
         bot.reply_to(message, f"Thank you for your purchase! You bought {item['name']}!\nYour current number of shards is: {user_data[user_id]}")
     
 
-@bot.message_handler(func=lambda message: message.text.lower() == 'Exit')
+@bot.message_handler(func=lambda message: message.text.lower() == 'exit')
 def exit_shop(message):
     bot.reply_to(message, "You have exited the shop.")
 
