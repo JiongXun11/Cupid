@@ -29,6 +29,8 @@ bot = telebot.TeleBot(TOKEN)
 
 # Dictionary to store count per user
 user_data = {}
+todo_list = {}
+tz = pytz.timezone('Asia/Singapore')
 
 @bot.message_handler(commands=['start'])
 def send_welcome(message):
