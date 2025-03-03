@@ -5,8 +5,6 @@ import os
 from datetime import datetime, timedelta
 import pytz
 import time
-from telegram import Update
-from telegram.ext import Updater, CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
 import numpy as np
 import random
 
@@ -467,70 +465,70 @@ food_list = [
     ["Yong Tau Foo", 6, 1, 2, 2, 4]
 ]
 
-# States for conversation
+# Food preference states
 SAVOURY, SPICY, SWEET, SOUR, HEAVY = range(5)
+user_preferences = {}
 
-def start_food(update: Update, context: CallbackContext) -> int:
-    update.message.reply_text("Rate your preference for savoury food (1-10):")
-    return SAVOURY
 
-def get_savoury(update: Update, context: CallbackContext) -> int:
-    context.user_data['savoury'] = int(update.message.text)
-    update.message.reply_text("Rate your preference for spicy food (1-10):")
-    return SPICY
+@bot.message_handler(commands=['food'])
+def start_food(message):
+    chat_id = message.chat.id
+    user_preferences[chat_id] = {}
+    bot.send_message(chat_id, "Rate your preference for savoury food (1-10):")
+    bot.register_next_step_handler(message, get_savoury)
 
-def get_spicy(update: Update, context: CallbackContext) -> int:
-    context.user_data['spicy'] = int(update.message.text)
-    update.message.reply_text("Rate your preference for sweet food (1-10):")
-    return SWEET
+def get_savoury(message):
+    chat_id = message.chat.id
+    user_preferences[chat_id]['savoury'] = int(message.text)
+    bot.send_message(chat_id, "Rate your preference for spicy food (1-10):")
+    bot.register_next_step_handler(message, get_spicy)
 
-def get_sweet(update: Update, context: CallbackContext) -> int:
-    context.user_data['sweet'] = int(update.message.text)
-    update.message.reply_text("Rate your preference for sour food (1-10):")
-    return SOUR
+def get_spicy(message):
+    chat_id = message.chat.id
+    user_preferences[chat_id]['spicy'] = int(message.text)
+    bot.send_message(chat_id, "Rate your preference for sweet food (1-10):")
+    bot.register_next_step_handler(message, get_sweet)
 
-def get_sour(update: Update, context: CallbackContext) -> int:
-    context.user_data['sour'] = int(update.message.text)
-    update.message.reply_text("Rate your preference for heavy meals (1-10):")
-    return HEAVY
+def get_sweet(message):
+    chat_id = message.chat.id
+    user_preferences[chat_id]['sweet'] = int(message.text)
+    bot.send_message(chat_id, "Rate your preference for sour food (1-10):")
+    bot.register_next_step_handler(message, get_sour)
 
-def get_heavy(update: Update, context: CallbackContext) -> int:
-    context.user_data['heavy'] = int(update.message.text)
+def get_sour(message):
+    chat_id = message.chat.id
+    user_preferences[chat_id]['sour'] = int(message.text)
+    bot.send_message(chat_id, "Rate your preference for heavy meals (1-10):")
+    bot.register_next_step_handler(message, get_heavy)
+
+def get_heavy(message):
+    chat_id = message.chat.id
+    user_preferences[chat_id]['heavy'] = int(message.text)
     
-    # User preference as numpy array
     user_pref = np.array([
-        context.user_data['savoury'],
-        context.user_data['spicy'],
-        context.user_data['sweet'],
-        context.user_data['sour'],
-        context.user_data['heavy']
+        user_preferences[chat_id]['savoury'],
+        user_preferences[chat_id]['spicy'],
+        user_preferences[chat_id]['sweet'],
+        user_preferences[chat_id]['sour'],
+        user_preferences[chat_id]['heavy']
     ])
     
-    # Find best matching food
     best_match = None
     best_distance = float('inf')
     for food in food_list:
         food_scores = np.array(food[1:])
-        distance = np.linalg.norm(user_pref - food_scores)  # Euclidean distance
+        distance = np.linalg.norm(user_pref - food_scores)
         if distance < best_distance:
             best_distance = distance
             best_match = food[0]
     
-    update.message.reply_text(f"Based on your preferences, you might like: {best_match}")
-    return ConversationHandler.END
-
-@bot.message_handler(commands=['food'])
-def food_handler(message):
-    start_food(message, None)
-
-def random_food(update: Update, context: CallbackContext):
-    random_choice = random.choice(food_list)[0]
-    update.message.reply_text(f"Here's a random food suggestion: {random_choice}")
+    bot.send_message(chat_id, f"Based on your preferences, you might like: {best_match}")
 
 @bot.message_handler(commands=['randomfood'])
 def random_food_handler(message):
-    random_food(message, None)
-
+    random_choice = random.choice(food_list)[0]
+    bot.send_message(message.chat.id, f"Here's a random food suggestion: {random_choice}")
+    
 # ending command
 @bot.message_handler(func=lambda message: True)
 def echo_all(message):
