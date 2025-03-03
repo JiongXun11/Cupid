@@ -7,6 +7,10 @@ import os
 from datetime import datetime, timedelta
 import pytz
 import time
+from telegram import Update
+from telegram.ext import Updater, CommandHandler, CallbackContext, ConversationHandler, MessageHandler, Filters
+import numpy as np
+import random
 
 API_KEY = os.getenv("API_KEY")
 API_ID = os.getenv("API_ID")
@@ -375,6 +379,163 @@ def exit_shop(message):
 def echo_all(message):
     bot.reply_to(message, "Invalid command. Please type '/help' to see available commands.")
 
+food_list = [
+    # savoury (salty or not), spiciness, sweetness, sourness, heaviness
+    
+    # Chinese Cuisine
+    ["Hainanese Chicken Rice", 6, 1, 2, 1, 5],
+    ["Char Kway Teow", 8, 3, 3, 1, 7],
+    ["Hokkien Mee", 7, 3, 3, 1, 6],
+    ["Bak Kut Teh (Teochew & Klang-style)", 7, 2, 2, 2, 6],
+    ["Carrot Cake (Black & White)", 6, 2, 3, 1, 5],
+    ["Wanton Mee", 6, 2, 3, 1, 5],
+    ["Lor Mee", 7, 2, 2, 2, 6],
+    ["Kway Chap", 7, 1, 2, 1, 6],
+    ["Bak Chor Mee", 7, 2, 2, 2, 6],
+    ["Yong Tau Foo", 6, 1, 2, 2, 4],
+    ["Economy Rice (Cai Fan)", 6, 1, 2, 1, 5],
+    ["Laksa (Katong, Nonya, Curry)", 7, 6, 3, 1, 7],
+    ["Claypot Rice", 7, 2, 2, 1, 7],
+    ["Prawn Mee", 7, 3, 3, 1, 6],
+    ["Fishball Noodles", 5, 1, 2, 1, 4],
+    ["Thunder Tea Rice (Lei Cha Fan)", 5, 1, 3, 6, 5],
+    ["Oyster Omelette (Orh Luak)", 8, 2, 3, 1, 7],
+    ["Duck Rice (Braised & Roasted)", 7, 2, 2, 1, 6],
+    ["Roast Meat (Char Siew, Roast Pork, Roast Duck)", 8, 2, 3, 1, 7],
+    ["Salted Egg Yolk Dishes (Prawns, Chicken, Crab)", 8, 2, 3, 1, 7],
+    ["Soya Sauce Chicken Rice", 6, 1, 2, 1, 5],
 
+    # Malay Cuisine
+    ["Nasi Lemak", 7, 2, 4, 1, 6],
+    ["Mee Rebus", 6, 4, 4, 2, 7],
+    ["Mee Siam", 6, 5, 4, 5, 6],
+    ["Ayam Penyet", 8, 6, 3, 1, 7],
+    ["Satay", 8, 4, 4, 1, 7],
+    ["Otah", 6, 4, 3, 2, 5],
+
+    # Indian Cuisine
+    ["Roti Prata", 5, 1, 3, 1, 6],
+    ["Murtabak", 6, 2, 3, 1, 7],
+    ["Briyani", 7, 5, 3, 1, 8],
+    ["Mee Goreng", 7, 6, 3, 2, 7],
+    ["Thosai", 5, 1, 3, 2, 5],
+    ["Fish Head Curry", 8, 7, 2, 3, 8],
+    ["Maggi Goreng", 6, 5, 3, 2, 7],
+
+    # Peranakan/Nyonya Cuisine
+    ["Nyonya Laksa", 7, 6, 3, 2, 7],
+    ["Kueh Pie Tee", 5, 2, 4, 2, 4],
+
+    # Seafood Specialties
+    ["Chili Crab", 9, 7, 3, 2, 8],
+    ["Black Pepper Crab", 9, 6, 2, 2, 8],
+    ["Salted Egg Yolk Crab", 8, 2, 3, 1, 7],
+    ["Butter Prawns", 7, 2, 4, 1, 7],
+    ["Sambal Stingray", 8, 7, 2, 3, 7],
+    ["Cereal Prawns", 7, 2, 4, 1, 6],
+    ["BBQ Sotong", 7, 5, 3, 2, 6],
+    ["Gong Gong", 6, 2, 2, 1, 5],
+
+    # International Food
+    ["Ramen", 7, 2, 2, 1, 6],
+    ["Sushi", 4, 1, 2, 1, 3],
+    ["Donburi", 6, 1, 3, 1, 5],
+    ["Yakitori", 6, 3, 3, 1, 5],
+    ["Okonomiyaki", 7, 3, 3, 1, 6],
+    ["Kimchi Jjigae", 6, 7, 3, 5, 6],
+    ["Chicken Chop", 6, 1, 3, 1, 6],
+    ["Fish & Chips", 5, 1, 3, 1, 6],
+    ["Pasta", 6, 1, 3, 1, 6],
+    ["Pizza", 6, 1, 3, 1, 6],
+    ["Tom Yum Soup", 7, 7, 3, 8, 5],
+    ["Pho", 6, 3, 3, 4, 5],
+    ["Lasagna", 8, 2, 4, 1, 8],
+
+    # Breakfast Food
+    ["Kaya Toast Set", 4, 1, 6, 1, 2],
+    ["Nasi Lemak", 7, 2, 4, 1, 6],
+    ["Chwee Kueh", 4, 1, 4, 1, 3],
+    ["Lor Mai Kai", 6, 1, 3, 1, 5],
+    ["French Toast", 4, 1, 7, 1, 3],
+    ["Eggs Benedict", 5, 1, 4, 1, 6],
+    ["Pancakes", 4, 1, 7, 1, 4],
+
+    # additional
+    ["Chee Cheong Fun", 4, 1, 5, 2, 3],
+    ["Bread", 3, 1, 6, 1, 2],
+    ["Sliced Cake", 3, 1, 8, 1, 3],
+    ["Seaweed Soup", 4, 1, 2, 3, 2],
+    ["Lala Soup", 6, 3, 2, 5, 4],
+    ["Ban Mian", 6, 2, 2, 1, 5],
+    ["Seafood Soup", 6, 3, 2, 4, 4],
+    ["Egg Fried Rice", 6, 2, 3, 1, 5],
+    ["Sambal Fried Rice", 7, 6, 3, 2, 6],
+    ["Yong Tau Foo", 6, 1, 2, 2, 4]
+]
+
+# States for conversation
+SAVOURY, SPICY, SWEET, SOUR, HEAVY = range(5)
+
+def start_food(update: Update, context: CallbackContext) -> int:
+    update.message.reply_text("Rate your preference for savoury food (1-10):")
+    return SAVOURY
+
+def get_savoury(update: Update, context: CallbackContext) -> int:
+    context.user_data['savoury'] = int(update.message.text)
+    update.message.reply_text("Rate your preference for spicy food (1-10):")
+    return SPICY
+
+def get_spicy(update: Update, context: CallbackContext) -> int:
+    context.user_data['spicy'] = int(update.message.text)
+    update.message.reply_text("Rate your preference for sweet food (1-10):")
+    return SWEET
+
+def get_sweet(update: Update, context: CallbackContext) -> int:
+    context.user_data['sweet'] = int(update.message.text)
+    update.message.reply_text("Rate your preference for sour food (1-10):")
+    return SOUR
+
+def get_sour(update: Update, context: CallbackContext) -> int:
+    context.user_data['sour'] = int(update.message.text)
+    update.message.reply_text("Rate your preference for heavy meals (1-10):")
+    return HEAVY
+
+def get_heavy(update: Update, context: CallbackContext) -> int:
+    context.user_data['heavy'] = int(update.message.text)
+    
+    # User preference as numpy array
+    user_pref = np.array([
+        context.user_data['savoury'],
+        context.user_data['spicy'],
+        context.user_data['sweet'],
+        context.user_data['sour'],
+        context.user_data['heavy']
+    ])
+    
+    # Find best matching food
+    best_match = None
+    best_distance = float('inf')
+    for food in food_list:
+        food_scores = np.array(food[1:])
+        distance = np.linalg.norm(user_pref - food_scores)  # Euclidean distance
+        if distance < best_distance:
+            best_distance = distance
+            best_match = food[0]
+    
+    update.message.reply_text(f"Based on your preferences, you might like: {best_match}")
+    return ConversationHandler.END
+
+@bot.message_handler(commands=['food'])
+def food_handler(message):
+    start_food(message, None)
+
+def random_food(update: Update, context: CallbackContext):
+    random_choice = random.choice(food_list)[0]
+    update.message.reply_text(f"Here's a random food suggestion: {random_choice}")
+
+@bot.message_handler(commands=['randomfood'])
+def random_food_handler(message):
+    random_food(message, None)
+    
 print("Bot is running...")
 bot.polling(non_stop=True, timeout=60, long_polling_timeout=10)
