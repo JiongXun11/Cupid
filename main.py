@@ -373,10 +373,6 @@ def buy_item(message):
 def exit_shop(message):
     bot.reply_to(message, "You have exited the shop.")
 
-@bot.message_handler(func=lambda message: True)
-def echo_all(message):
-    bot.reply_to(message, "Invalid command. Please type '/help' to see available commands.")
-
 food_list = [
     # savoury (salty or not), spiciness, sweetness, sourness, heaviness
     
@@ -534,6 +530,11 @@ def random_food(update: Update, context: CallbackContext):
 @bot.message_handler(commands=['randomfood'])
 def random_food_handler(message):
     random_food(message, None)
+
+# ending command
+@bot.message_handler(func=lambda message: True)
+def echo_all(message):
+    bot.reply_to(message, "Invalid command. Please type '/help' to see available commands.")
     
 print("Bot is running...")
 bot.polling(non_stop=True, timeout=60, long_polling_timeout=10)
