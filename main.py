@@ -1,8 +1,6 @@
 import telebot
 from flask import Flask    
 from threading import Thread
-from flask import Flask    
-from threading import Thread
 import os
 from datetime import datetime, timedelta
 import pytz
